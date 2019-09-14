@@ -142,7 +142,7 @@ public class TSP {
             i++;
         }
         solution.print();
-        System.out.print(solution.route.size());
+
 
     }
 
