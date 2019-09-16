@@ -60,19 +60,68 @@ class Solution //解类
 }
 abstract class Strategy//策略类
 {
+    final  static int iter_number = 4000;//设定局部搜索的次数
     public static Solution two_opt(Solution solution)//两元素交换
     {
         Random r = new Random();
         int i = r.nextInt(TSP.CUSTOMER_NUMBER);
-        int j = i+1+r.nextInt(TSP.CUSTOMER_NUMBER-i);
+        int j = i + 1 + r.nextInt(TSP.CUSTOMER_NUMBER - i);
         ArrayList<Integer> new_route = new ArrayList<>();
-        new_route.addAll(solution.route.subList(i,j));
+        new_route.addAll(solution.route.subList(i, j));
         solution.route.removeAll(new_route);
         Collections.reverse(new_route);
-        solution.route.addAll(i,new_route);
+        solution.route.addAll(i, new_route);
         solution.route_length = solution.getRoute_length();
 
 
+        return solution;
+    }
+
+    public static Solution shaking(Solution solution, int k)//shaking函数，获得一个解
+    {
+            for(int i=1;i<=k;i++)//通过k次2-opt获得k重邻域
+            {
+                Solution new_solution = new Solution();
+                new_solution.route.addAll(solution.route);
+                new_solution.route_length = solution.route_length;
+                new_solution = two_opt(new_solution);
+                solution = new_solution;
+            }
+            return solution;
+    }
+    public static Solution local_search(Solution solution)//邻域搜索
+    {
+        for(int i=1;i<=iter_number;i++)//通过k次2-opt获得k重lin'lü
+        {
+            Solution new_solution = new Solution();
+            new_solution.route.addAll(solution.route);
+            new_solution.route_length = solution.route_length;
+            new_solution = two_opt(new_solution);
+            if(solution.route_length>new_solution.route_length)
+                solution = new_solution;
+        }
+        return solution;
+
+    }
+    public static Solution V_N_Search(Solution solution)//变邻域搜索
+    {
+        int k = 1;
+        while(k<=TSP.CUSTOMER_NUMBER)
+        {
+            Solution new_solution = new Solution();
+            new_solution.route.addAll(solution.route);
+            new_solution.route_length = solution.route_length;
+            new_solution = shaking(new_solution,k);
+            new_solution = local_search(new_solution);
+            if(solution.route_length>new_solution.route_length)
+            {
+                solution = new_solution;
+                k = 1;
+            }
+            else k++;
+
+
+        }
         return solution;
     }
 }
@@ -122,6 +171,7 @@ public class TSP {
 
 
     }
+
     public static void main(String args[])
     {
         input();
@@ -129,17 +179,16 @@ public class TSP {
         cost_mariax = get_cost_mariax(cost_mariax);
         Solution solution = new Solution();
         solution.shuffeRoute();
-        int i=0;
-        //solution.print();
-        while(i<=100000) {
-            System.out.println(solution.route_length);
+        solution.print();
+
+       for(int i=1;i<=100000;i++)
+        {
             Solution new_solution = new Solution();
             new_solution.route.addAll(solution.route);
             new_solution.route_length = solution.route_length;
-            new_solution = Strategy.two_opt(new_solution);
-            if (solution.route_length >new_solution.route_length)
+            new_solution = Strategy.shaking(new_solution,2);
+            if(solution.route_length>new_solution.route_length)
                 solution = new_solution;
-            i++;
         }
         solution.print();
 
