@@ -56,6 +56,13 @@ class Solution //解类
         }
         System.out.println("该解总长度为"+this.route_length);
     }
+    public Solution clone()
+    {
+        Solution solution = new Solution();
+        solution.route.addAll(this.route);
+        solution.route_length = this.route_length;
+        return solution;
+    }
 
 }
 abstract class Strategy//策略类
@@ -63,42 +70,61 @@ abstract class Strategy//策略类
     final  static int iter_number = 4000;//设定局部搜索的次数
     public static Solution two_opt(Solution solution)//两元素交换
     {
-        Random r = new Random();
-        int i = r.nextInt(TSP.CUSTOMER_NUMBER);
-        int j = i + 1 + r.nextInt(TSP.CUSTOMER_NUMBER - i);
-        ArrayList<Integer> new_route = new ArrayList<>();
-        new_route.addAll(solution.route.subList(i, j));
-        solution.route.removeAll(new_route);
-        Collections.reverse(new_route);
-        solution.route.addAll(i, new_route);
-        solution.route_length = solution.getRoute_length();
+        for(int i=1;i<=TSP.CUSTOMER_NUMBER-1;i++)
+            for(int j=i+1;j<=TSP.CUSTOMER_NUMBER;j++) {
+                Solution new_solution = solution.clone();
+                ArrayList<Integer> new_route = new ArrayList<>();
+                new_route.addAll(new_solution.route.subList(i, j));
+                new_solution.route.removeAll(new_route);
+                Collections.reverse(new_route);
+                new_solution.route.addAll(i, new_route);
+                new_solution.route_length = new_solution.getRoute_length();
+                //System.out.println(i);
+                //System.out.println(j);
+                if(new_solution.route_length<solution.route_length)
+                {
+                    //new_solution.print();
+                    //System.out.println(solution.route.size());
+                    return new_solution;
+                }
+            }
 
 
         return solution;
     }
 
-    public static Solution shaking(Solution solution, int k)//shaking函数，获得一个解
+
+    public static Solution shaking(Solution solution, int k)//shaking函数，获得邻域外的解
     {
+
+            int [] has_exange = new int[TSP.CUSTOMER_NUMBER+1];//储存交换过的解
             for(int i=1;i<=k;i++)//通过k次2-opt获得k重邻域
             {
-                Solution new_solution = new Solution();
-                new_solution.route.addAll(solution.route);
-                new_solution.route_length = solution.route_length;
-                new_solution = two_opt(new_solution);
-                solution = new_solution;
+                Random r = new Random();
+                int p = r.nextInt(TSP.CUSTOMER_NUMBER);
+                int q = r.nextInt(TSP.CUSTOMER_NUMBER-p)+p+1;
+                ArrayList<Integer> new_route = new ArrayList<>();
+                new_route.addAll(solution.route.subList(p, q));
+                solution.route.removeAll(new_route);
+                Collections.reverse(new_route);
+                solution.route.addAll(p, new_route);
+                solution.route_length = solution.getRoute_length();
+
             }
             return solution;
     }
     public static Solution local_search(Solution solution)//邻域搜索
     {
-        for(int i=1;i<=iter_number;i++)//通过k次2-opt获得k重lin'lü
-        {
+        while(true) {
             Solution new_solution = new Solution();
             new_solution.route.addAll(solution.route);
             new_solution.route_length = solution.route_length;
+
             new_solution = two_opt(new_solution);
-            if(solution.route_length>new_solution.route_length)
-                solution = new_solution;
+
+            if (solution.route_length == new_solution.route_length)
+                break;
+            solution = new_solution;
         }
         return solution;
 
@@ -121,6 +147,32 @@ abstract class Strategy//策略类
             else k++;
 
 
+        }
+        return solution;
+    }
+    public static Solution R_V_N_Search(Solution solution)
+    {
+        int k = 1;
+        for(int i=1;i<=700;i++) {
+            k=1;
+            while (k <= TSP.CUSTOMER_NUMBER) {
+                //System.out.println(k);
+                Solution new_solution = new Solution();
+                new_solution.route.addAll(solution.route);
+                new_solution.route_length = solution.route_length;
+                long endTime = System.currentTimeMillis();
+                new_solution = shaking(new_solution, k);
+                long startTime = System.currentTimeMillis();
+                if (solution.route_length <= new_solution.route_length) {
+
+                    k++;
+                } else {
+                    solution = new_solution;
+                    k = 1;
+                }
+
+
+            }
         }
         return solution;
     }
@@ -172,27 +224,34 @@ public class TSP {
 
     }
 
-    public static void main(String args[])
-    {
+    public static void main(String args[]) {
         input();
-        cost_mariax = new double[CUSTOMER_NUMBER+1][CUSTOMER_NUMBER+1];
+        cost_mariax = new double[CUSTOMER_NUMBER + 1][CUSTOMER_NUMBER + 1];
         cost_mariax = get_cost_mariax(cost_mariax);
-        Solution solution = new Solution();
-        solution.shuffeRoute();
-        solution.print();
+        double ans = 0;
+        long startTime = System.currentTimeMillis();
+        for (int i = 1; i <= 20; i++) {
+            Solution solution = new Solution();
+            solution.shuffeRoute();
+            for (int j = 1; j <= 3000; j++) {
+                Solution new_solution = solution.clone();
+                new_solution = Strategy.two_opt(new_solution);
+                if (new_solution.route_length < solution.route_length)
+                    solution = new_solution;
 
-       for(int i=1;i<=100000;i++)
-        {
-            Solution new_solution = new Solution();
-            new_solution.route.addAll(solution.route);
-            new_solution.route_length = solution.route_length;
-            new_solution = Strategy.shaking(new_solution,2);
-            if(solution.route_length>new_solution.route_length)
-                solution = new_solution;
+                //}
+                //   solution.print();
+                // solution = Strategy.V_N_Search(solution);
+                //   }
+            }
+            solution.print();
+            ans += solution.route_length;
+
         }
-        solution.print();
+            long endTime = System.currentTimeMillis();
+            System.out.println("程序运行时间：" + (endTime - startTime) / 1000 + "s");
+            System.out.println(ans / 20.0);
 
+        }
 
     }
-
-}
